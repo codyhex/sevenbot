@@ -2,16 +2,10 @@
 <launch>
 
   <!-- Load joint controller configurations from YAML file to parameter server -->
-  <rosparam file="$(find senvenbot_control)/config/base_control.yaml" command="load"/>
+  <rosparam file="$(find sevenbot_control)/config/base_control.yaml" command="load"/>
 
   <!-- load the controllers -->
-  <node name="controller_spawner"
-    pkg="controller_manager"
-    type="spawner" respawn="false"
-    output="screen" ns="/sevenbot"
-    args="joint_state_controller
-      mobile_base_controller"
-  />
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" ns="/sevenbot" args="joint_state_controller mobile_base_controller"/>
 
   <!-- convert joint states to TF transforms for rviz, etc -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" respawn="false" output="screen">
@@ -19,6 +13,12 @@
     <remap from="/joint_states" to="/sevenbot/joint_states" />
   </node>
 
+<!-- The turtlebot telop key control, I copied it over here because I have trouble launch the node from the apt-get install -->
+  <node ns="/sevenbot" name="key_teleop" pkg="sevenbot_control" type="key_control.py" output="screen">
+    <param name="scale_linear" value="0.5" type="double"/>
+    <param name="scale_angular" value="3.0" type="double"/>
+    <remap from="cmd_vel" to="/cmd_vel"/>
+  </node>
 </launch>
 
 
