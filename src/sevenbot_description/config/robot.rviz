@@ -81,32 +81,19 @@ Visualization Manager:
       Reference Frame: base_link
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        base_link:
-          Value: true
-        left_wheel_link:
-          Value: true
-        odom:
-          Value: true
-        right_wheel_link:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
-          base_link:
-            left_wheel_link:
-              {}
-            right_wheel_link:
-              {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -116,12 +103,16 @@ Visualization Manager:
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        Link Tree Style: ""
+        Link Tree Style: Links in Alphabetic Order
         base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         left_wheel_link:
           Alpha: 1
           Show Axes: false
@@ -162,22 +153,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10.1091
+      Distance: 24.4563
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.14304
-        Y: 5.22247
-        Z: -4.86187
+        X: 0.148235
+        Y: 3.14038
+        Z: -5.67169
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.1648
+      Pitch: 1.1448
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.54541
+      Yaw: 4.78541
     Saved: ~
 Window Geometry:
   Displays:
@@ -195,5 +186,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 590
+  X: 570
   Y: 14

@@ -1,8 +1,8 @@
-myrobot:
+sevenbot:
   # Use the ROS control in this package since I don't have a real MCU
-  joint_state_controller:
-    type: joint_state_controller/JointStateController
-    publish_rate: 50  
+  # joint_state_controller:
+  #   type: joint_state_controller/JointStateController
+  #   publish_rate: 50  
 
   mobile_base_controller:
     type: "diff_drive_controller/DiffDriveController"
