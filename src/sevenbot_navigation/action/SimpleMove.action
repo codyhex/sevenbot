@@ -1,7 +1,4 @@
 #goal location send to the action server
-std_msgs/Bool translation # if enabled only, straight driving
-std_msgs/Bool rotation    # if enabled only, in place turn
-						  # if both enabled, will do  straight driving and then in place turn
 geometry_msgs/Pose pose   # goal pose
 ---
 #result 
