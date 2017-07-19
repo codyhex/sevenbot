@@ -36,7 +36,7 @@ class Controller():
         self.angular_speed = rospy.get_param('~angular_speed', 1.0)                 # this should be measure from robot center
 
         self.cmd_vel_pub = rospy.Publisher("cmd_vel", Twist, queue_size=1)
-
+        self.action_sub = rospy.Subscriber('simple_move_sever/result', sevenbot_navigation.msg.SimpleMoveActionResult, self.action_result_cb)
         # You should pass your server name in here
         self.client = SimpleActionClient('simple_move_sever', sevenbot_navigation.msg.SimpleMoveAction)
 
@@ -108,14 +108,17 @@ class Controller():
         print ("get results:")
         print self.client.get_result()
 
-    def run_square(self):
-        # simply setting up the square motion with odom data
-        # because if using Navigation Stack, robot needs a Lidar
-        # for i in range(4):
-        #     self.go_straight(1.0)
-        #     self.in_place_turn(1.57)
+    def action_result_cb(self, data):
+        # calling again this will make the robot go infinit loop
+        if data.result.reached is True:
+            self.send_simple_move_goal(1.0, pi*0.5)
+        else:
+            rospy.loginfo("Target not reach, stop the square motion.")
 
-        self.send_simple_move_goal(1.0, 90)
+
+    def start_square_action(self):
+        self.send_simple_move_goal(1.0, pi*0.5)
+
 
 if __name__=='__main__':
     try:
@@ -127,14 +130,17 @@ if __name__=='__main__':
         controller = Controller()
 
         # wait until the image has been passed then init the visualizer
-        rate = rospy.Rate(20.0)
-        while not rospy.is_shutdown():
-            if circle_control:
+        if circle_control:
+            rate = rospy.Rate(20.0)
+            while not rospy.is_shutdown():
                 controller.run_circle()
-            else:
-                controller.run_square()
 
-            rate.sleep()
+                rate.sleep()
+        else:
+            # only call this once, the remain part will go back from callback loops
+            controller.start_square_action()
+
+        rospy.spin()
 
     except rospy.ROSInterruptException:
         pass

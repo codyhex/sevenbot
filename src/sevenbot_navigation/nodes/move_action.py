@@ -1,19 +1,27 @@
 #!/usr/bin/env python
 
 import roslib, rospy, tf
-from geometry_msgs.msg import Pose, Point, Quaternion, Vector3
+from geometry_msgs.msg import Pose, Point, Quaternion, Vector3, Twist
 from actionlib import SimpleActionServer
 
 import sevenbot_navigation.msg
+import tf.transformations as tftr
+from math import sqrt
+
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 class SimpleMoveAction():
     """docstring for SimpleMoveAction"""
     def __init__(self, name):
 
         self.linear_speed = rospy.get_param('~linear_speed', 0.2)   # measure from robot center
-        self.angular_speed = rospy.get_param('~angular_speed', 1.0)   
-        self.old_position = Point()
+        self.angular_speed = rospy.get_param('~angular_speed', 0.5)   
+        self.linear_tolerance = 0.05 # theta
         self.angular_tolerance = 10 # theta
+
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+
         # Initialize the tf listener
         self.tf_listener = tf.TransformListener()
 
@@ -53,19 +61,89 @@ class SimpleMoveAction():
 
         return trans, quat
 
+    def go_straight(self, dist_vec):
+
+
+        cmd_vel = Twist()
+        cmd_vel.linear.x = self.linear_speed
+
+        # Publish the Twist message and sleep 1 cycle         
+        self.cmd_vel_pub.publish(cmd_vel)
+        # Post-update
+        trans, quat = self.get_odom()
+        dist_vec.x = self.goal.pose.position.x - trans[0]
+        dist_vec.y = self.goal.pose.position.y - trans[1]
+
+        r = rospy.Rate(20)
+        r.sleep()
+
+        return dist_vec
+
+
+    def turn_in_place(self, dist_vec):
+        
+        cmd_vel = Twist()
+        cmd_vel.angular.z = self.angular_speed
+
+        # Publish the Twist message and sleep 1 cycle         
+        self.cmd_vel_pub.publish(cmd_vel)
+
+        trans, quat = self.get_odom()
+        quat0 = [self.goal.pose.orientation.w, self.goal.pose.orientation.x, self.goal.pose.orientation.y, self.goal.pose.orientation.z]
+
+        dist_vec.z = tftr.euler_from_quaternion(tftr.quaternion_slerp(quat0, quat, fraction=1))[2] # take only the Yaw value
+
+        r = rospy.Rate(20)
+        r.sleep()
+        return dist_vec
+
     def execute_cb(self, goal):
         self.goal = goal
+        self._result.reached = False
+        # How fast will we update the robot's movement?
+        dist_vec = Vector3()
         trans, quat = self.get_odom()
-        v = Vector3()
-        v.x = self.goal.pose.position.x - trans[0]
-        v.y = self.goal.pose.position.y - trans[1]
-        v.z = -1 # make the quat angle later
-        self._feedback = v
-        rospy.loginfo('%s: Moving, distance to goal %f  %f, %f' % (self._action_name, self._feedback.x, self._feedback.y, self._feedback.z))
+        dist_vec.x = self.goal.pose.position.x - trans[0]
+        dist_vec.y = self.goal.pose.position.y - trans[1]
+        # the goal contains a quat already turned, so this with end up with the error between current and goal
+        # dist_vec.z will be the euler angle theta of the error to goal
+        quat0 = [self.goal.pose.orientation.w, self.goal.pose.orientation.x, self.goal.pose.orientation.y, self.goal.pose.orientation.z]
+        dist_vec.z = tftr.euler_from_quaternion(tftr.quaternion_slerp(quat0, quat, fraction=1))[2]
 
+        print tftr.euler_from_quaternion(quat0)
+        print tftr.euler_from_quaternion(tftr.quaternion_slerp(quat0, quat, fraction=1))
+        print ('goal z', dist_vec.z)
+        distance = sqrt(dist_vec.x**2 + dist_vec.y**2)
+
+        while (distance-self.linear_tolerance)>0.0 and not rospy.is_shutdown():
+            dist_vec = self.go_straight(dist_vec)
+            distance = sqrt(dist_vec.x**2 + dist_vec.y**2)
+            self._feedback.vector = dist_vec
+            self._as.publish_feedback(self._feedback)
+            # rospy.loginfo('%s: Moving, distance to goal %f ' % (self._action_name, distance))
+
+        # Stop the robot before the rotation
+        cmd_vel = Twist()
+        self.cmd_vel_pub.publish(cmd_vel)
+        rospy.sleep(3)
+
+        # Now start turning
+        trans, quat = self.get_odom()
+        quat0 = [self.goal.pose.orientation.w, self.goal.pose.orientation.x, self.goal.pose.orientation.y, self.goal.pose.orientation.z]
+
+        # update the orientation again to make sure you have the latest value after the straight action
+        dist_vec.z = tftr.euler_from_quaternion(tftr.quaternion_slerp(quat0, quat, fraction=1))[2]
+
+        while (dist_vec.z-self.angular_tolerance)>0.0 and not rospy.is_shutdown():
+            dist_vec = self.turn_in_place(dist_vec)
+            self._feedback.vector = dist_vec
+            self._as.publish_feedback(self._feedback)
+            rospy.loginfo('%s: Truning to goal %f' % (self._action_name, self._feedback.x, self._feedback.y, self._feedback.z))
+
+        # Goal should be reached after the operations but this is not helpful
         self._result.reached = True
+        trans, quat = self.get_odom()
         pose = Pose()
-
         pose.position = Point(*trans)
         pose.orientation = Quaternion(*quat)
 
