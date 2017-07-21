@@ -1,4 +1,4 @@
-# sevenbot_ws
+# Sevenbot Project
 Sevenbot is a prototype for setting up a ROS based simulation workspace. 
 
 # Simple Instructions
